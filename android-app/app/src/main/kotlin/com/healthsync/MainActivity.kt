@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.lifecycle.lifecycleScope
+import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
@@ -171,6 +172,8 @@ class MainActivity : AppCompatActivity() {
             ExistingPeriodicWorkPolicy.UPDATE,
             PeriodicWorkRequestBuilder<HealthSyncWorker>(15, TimeUnit.MINUTES, 5, TimeUnit.MINUTES)
                 .setConstraints(networkConstraints())
+                // FIX 4: Exponential backoff prevents retry spam on permission/network failures
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
                 .build()
         )
     }
