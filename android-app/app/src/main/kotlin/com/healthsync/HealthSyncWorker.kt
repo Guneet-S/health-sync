@@ -95,10 +95,12 @@ class HealthSyncWorker(
                     Result.retry()
                 }
             } catch (e: SecurityException) {
-                // FIX 3: SecurityException → retry, not failure (permission state often restores)
-                appendSyncLog(context, "FAIL: Permission denied — will retry")
-                prefs.edit().putString(KEY_LAST_STATUS, "PERMISSION_DENIED: HC permissions not granted — tap Grant Health Access").apply()
-                showPermissionNotification(context)
+                // FIX 3: SecurityException during reads → retry silently.
+                // Permissions ARE granted (checked above). HC background context is temporarily
+                // restricted on some devices — fresh client on retry resolves it automatically.
+                // No notification needed — this is not a user error.
+                appendSyncLog(context, "FAIL: HC background read blocked — retrying automatically")
+                prefs.edit().putString(KEY_LAST_STATUS, "Background read blocked — retrying automatically").apply()
                 Result.retry()
             } catch (e: Exception) {
                 appendSyncLog(context, "ERROR: ${e.message}")
