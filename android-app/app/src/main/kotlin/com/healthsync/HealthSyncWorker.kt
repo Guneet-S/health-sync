@@ -3,6 +3,7 @@ package com.healthsync
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.content.pm.ServiceInfo
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
@@ -26,9 +27,10 @@ class HealthSyncWorker(
         val repository = SyncRepository(context)
 
         appendSyncLog(context, "Auto-sync triggered")
-        setForeground(getForegroundInfo())
 
         return try {
+            try { setForeground(getForegroundInfo()) } catch (_: Exception) {}
+
             if (!HealthConnectManager.isAvailable(context)) {
                 appendSyncLog(context, "FAIL: Health Connect unavailable")
                 prefs.edit().putString(KEY_LAST_STATUS, "Failed: Health Connect unavailable").apply()
@@ -106,7 +108,11 @@ class HealthSyncWorker(
             .setSmallIcon(android.R.drawable.ic_menu_compass)
             .setOngoing(true)
             .build()
-        return ForegroundInfo(1, notification)
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            ForegroundInfo(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE)
+        } else {
+            ForegroundInfo(1, notification)
+        }
     }
 
     companion object {

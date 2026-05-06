@@ -41,7 +41,9 @@
         <activity android:name=".LogsActivity"/>
 
         <service
-            android:name="androidx.work.impl.foreground.SystemForegroundService"/>
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="shortService"
+            tools:node="merge"/>
 
         <!-- Required: lets Health Connect show this app in its permission management UI -->
         <activity-alias
