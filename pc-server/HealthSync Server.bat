@@ -1,0 +1,9 @@
+@echo off
+title HealthSync Server
+echo.
+echo  HealthSync Server v1.9 - Starting...
+echo.
+C:\Python314\python.exe "C:\claude-agents\health-sync\pc-server\server.py"
+echo.
+echo  Server stopped. See error above.
+pause
