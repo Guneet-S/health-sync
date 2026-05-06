@@ -30,11 +30,6 @@ class HealthSyncWorker(
                 prefs.edit().putString(KEY_LAST_STATUS, "Failed: Health Connect unavailable").apply()
                 return Result.failure()
             }
-            if (!manager.hasAllPermissions()) {
-                prefs.edit().putString(KEY_LAST_STATUS, "PERMISSION_DENIED: HC permissions not granted — tap Grant Health Access").apply()
-                return Result.failure()
-            }
-
             val now = Instant.now()
             // Use last sync time as start, defaulting to 24h ago to handle Samsung Health delays
             val lastSyncMs = prefs.getLong(KEY_LAST_SYNC_TIME, 0L)

@@ -11,7 +11,6 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH"/>
 
     <!-- Required on Android 11+ to query Health Connect package -->
     <queries>
@@ -41,8 +40,7 @@
         <activity android:name=".LogsActivity"/>
 
         <service
-            android:name="androidx.work.impl.foreground.SystemForegroundService"
-            android:foregroundServiceType="health"/>
+            android:name="androidx.work.impl.foreground.SystemForegroundService"/>
 
         <!-- Required: lets Health Connect show this app in its permission management UI -->
         <activity-alias
