@@ -1,6 +1,5 @@
 package com.healthsync
 
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -9,7 +8,10 @@ import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
+import java.io.File
 import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 class HealthSyncWorker(
     private val context: Context,
@@ -23,10 +25,12 @@ class HealthSyncWorker(
         val manager = HealthConnectManager(context)
         val repository = SyncRepository(context)
 
+        appendSyncLog(context, "Auto-sync triggered")
         setForeground(getForegroundInfo())
 
         return try {
             if (!HealthConnectManager.isAvailable(context)) {
+                appendSyncLog(context, "FAIL: Health Connect unavailable")
                 prefs.edit().putString(KEY_LAST_STATUS, "Failed: Health Connect unavailable").apply()
                 return Result.failure()
             }
@@ -43,6 +47,7 @@ class HealthSyncWorker(
 
             val allZero = steps.total == 0 && heartRate.avg == 0.0 && calories.total == 0.0
             if (allZero) {
+                appendSyncLog(context, "SKIP: No new data from Samsung Health")
                 prefs.edit()
                     .putString(KEY_LAST_STATUS, "No new data (Samsung Health hasn't synced to Health Connect yet — try again later)")
                     .putLong(KEY_LAST_SYNC_TIME, now.toEpochMilli())
@@ -55,6 +60,7 @@ class HealthSyncWorker(
 
             val uploadResult = repository.uploadToServer(payload, serverAddress)
             if (uploadResult.isSuccess) {
+                appendSyncLog(context, "SUCCESS: steps=${steps.total} hr=${heartRate.avg} cal=${calories.total}")
                 prefs.edit()
                     .putString(KEY_LAST_STATUS, "Success: ${uploadResult.getOrNull()}")
                     .putLong(KEY_LAST_SYNC_TIME, now.toEpochMilli())
@@ -62,16 +68,29 @@ class HealthSyncWorker(
                 Result.success()
             } else {
                 val error = uploadResult.exceptionOrNull()?.message ?: "unknown"
+                appendSyncLog(context, "FAIL: Upload error — $error")
                 prefs.edit().putString(KEY_LAST_STATUS, "Upload failed: $error (saved locally)").apply()
                 Result.retry()
             }
         } catch (e: SecurityException) {
+            appendSyncLog(context, "FAIL: Permission denied")
             prefs.edit().putString(KEY_LAST_STATUS, "PERMISSION_DENIED: HC permissions not granted — tap Grant Health Access").apply()
             Result.failure()
         } catch (e: Exception) {
+            appendSyncLog(context, "ERROR: ${e.message}")
             prefs.edit().putString(KEY_LAST_STATUS, "Error: ${e.message}").apply()
             Result.failure()
         }
+    }
+
+    private fun appendSyncLog(context: Context, message: String) {
+        try {
+            val ts = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                .withZone(ZoneId.systemDefault())
+                .format(Instant.now())
+            val line = "[$ts] $message\n"
+            File(context.filesDir, "sync_log.txt").appendText(line)
+        } catch (_: Exception) {}
     }
 
     override suspend fun getForegroundInfo(): ForegroundInfo {
